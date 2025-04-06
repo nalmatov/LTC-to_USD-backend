@@ -27,7 +27,7 @@ app.add_middleware(
 )
 
 # Инициализация подключения к Redis
-redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+redis_client = redis.Redis(host='redis', port=6379, db=0, decode_responses=True)
 CACHE_TTL = 180  # время жизни кэша - 3 минуты
 
 # Обновляем класс перечисления для поддержки возможных критериев сортировки
@@ -766,4 +766,4 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="1.0.0.0", port=8000)
