@@ -27,7 +27,7 @@ app.add_middleware(
 )
 
 # Инициализация подключения к Redis
-redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+redis_client = redis.Redis(host='redis', port=6379, db=0, decode_responses=True)
 CACHE_TTL = 180  # время жизни кэша - 3 минуты
 
 # Обновляем класс перечисления для поддержки возможных критериев сортировки
@@ -117,7 +117,7 @@ async def add_custom_exchange(exchange_data: CustomExchangeInput):
         minusTwoPercentDepth=f"${math.floor(exchange_data.minusTwoPercentDepth):,}",
         volume24h=f"${math.floor(exchange_data.volume24h):,}",
         volumePercentage=f"{exchange_data.volumePercentage:.2f}%",
-        lastUpdated='User defined',
+        lastUpdated='Recently',
         icon=exchange_data.icon
     )
     
@@ -221,137 +221,239 @@ async def get_ltc_exchanges(
     - **descending**: Порядок сортировки (по умолчанию - по убыванию)
     """
     try:
-        # Проверяем наличие данных в кэше Redis
-        cache_key = f"ltc_exchanges_data:{sort_by}:{descending}"
-        cached_data = redis_client.get(cache_key)
+        # Проверяем наличие кеша базовых данных (без сортировки)
+        base_cache_key = "ltc_exchanges_base_data"
+        base_cached_data = redis_client.get(base_cache_key)
         
-        if cached_data:
-            # Улучшенное логирование
-            print(f"CACHE HIT: Данные получены из кэша Redis с ключом {cache_key}")
-            return json.loads(cached_data)
+        # Проверяем наличие данных с текущими параметрами сортировки
+        sort_cache_key = f"ltc_exchanges_data:{sort_by}:{descending}"
+        sorted_cached_data = redis_client.get(sort_cache_key)
+        
+        # Если есть данные с запрошенной сортировкой, возвращаем их сразу
+        if sorted_cached_data:
+            print(f"CACHE HIT: Данные с сортировкой получены из кэша Redis с ключом {sort_cache_key}")
+            return json.loads(sorted_cached_data)
+        
+        print(f"CACHE MISS: Данные с сортировкой не найдены в кэше Redis с ключом {sort_cache_key}")
+        
+        # Если есть базовые данные, используем их без повторного вызова API
+        if base_cached_data:
+            print(f"CACHE HIT: Используем базовые данные из кэша Redis для сортировки")
+            result_data = json.loads(base_cached_data)
+            exchanges = []
+            
+            # Преобразуем сырые данные в объекты ExchangeData
+            for exchange_dict in result_data['data']:
+                exchange = ExchangeData(**exchange_dict)
+                exchanges.append(exchange)
+            
+            print(f"DEBUG: Загружено {len(exchanges)} бирж из базового кеша для сортировки")
         else:
-            print(f"CACHE MISS: Данные не найдены в кэше Redis с ключом {cache_key}")
-        
-        # Если данных в кэше нет, получаем их из API
-        print("Получаем данные из API CoinGecko")
-        
-        # Получаем список бирж для сопоставления иконок
-        exchanges_response = requests.get("https://api.coingecko.com/api/v3/exchanges")
-        exchange_icon_mapping = {}
-        if exchanges_response.status_code == 200:
-            for ex in exchanges_response.json():
-                exchange_icon_mapping[ex["id"]] = ex.get("image")
-        
-        # Получаем данные о Litecoin с CoinGecko
-        response = requests.get('https://api.coingecko.com/api/v3/coins/litecoin/tickers')
-        if response.status_code != 200:
-            raise HTTPException(status_code=response.status_code, 
-                                detail=f"Ошибка API CoinGecko: {response.text}")
-        
-        data = response.json()
-        exchanges = []
-        
-        for ticker in data['tickers']:
-            # Фильтруем только пары LTC/USDT
-            if ticker['target'] == 'USDT':
-                base_volume_usd = ticker['converted_volume'].get('usd', 0)
-                
-                # Расчет значений глубины ордеров (примерные расчеты)
-                plus_two_percent_depth = math.floor(base_volume_usd * 0.06)
-                minus_two_percent_depth = math.floor(base_volume_usd * 0.05)
-                
-                # Получаем информацию о бирже и сопоставляем с иконкой
-                market_info = ticker.get('market', {})
-                exchange_identifier = market_info.get('identifier')
-                icon_url = exchange_icon_mapping.get(exchange_identifier)
-                
-                exchange_data = ExchangeData(
-                    id=0,  # Временный ID, переназначим позже
-                    exchange=market_info.get('name', 'Unknown'),
-                    pair='LTC/USDT',
-                    price=f"{float(ticker['last']):.4f}",
-                    plusTwoPercentDepth=f"${plus_two_percent_depth:,}",
-                    minusTwoPercentDepth=f"${minus_two_percent_depth:,}",
-                    volume24h=f"${math.floor(base_volume_usd):,}",
-                    volumePercentage=f"{ticker.get('bid_ask_spread_percentage', 1.0):.2f}%",
-                    lastUpdated='Recently',
-                    icon=icon_url
-                )
-                
-                exchanges.append(exchange_data)
-        
-        # Добавляем пользовательские биржи к основному списку
-        for custom_exchange in custom_exchanges.values():
-            # Обновляем цену для бирж с процентной корректировкой
-            if custom_exchange.price_percent is not None:
-                binance_price = await get_binance_ltc_price()
-                if binance_price > 0:
-                    calculated_price = binance_price * (1 + custom_exchange.price_percent / 100)
-                    price_str = f"{calculated_price:.4f}"
-                else:
-                    price_str = custom_exchange.price
-            else:
-                price_str = custom_exchange.price
+            # Если базовых данных нет, получаем их из API и сохраняем
+            print(f"CACHE MISS: Базовые данные не найдены в кэше Redis, получаем из API")
+            exchanges = await fetch_exchange_data_from_api()
             
-            # Копируем данные, чтобы избежать изменения оригинального объекта
-            exchange_copy = ExchangeData(
-                id=0,  # Временный ID, переназначим позже
-                exchange=custom_exchange.exchange,
-                pair=custom_exchange.pair,
-                price=price_str,  # Используем обновленную цену
-                price_percent=custom_exchange.price_percent,
-                plusTwoPercentDepth=custom_exchange.plusTwoPercentDepth,
-                minusTwoPercentDepth=custom_exchange.minusTwoPercentDepth,
-                volume24h=custom_exchange.volume24h,
-                volumePercentage=custom_exchange.volumePercentage,
-                lastUpdated=custom_exchange.lastUpdated,
-                icon=custom_exchange.icon
-            )
-            exchanges.append(exchange_copy)
+            # Сохраняем базовые данные в кеш
+            base_result = {
+                'status': 'success',
+                'data': [exchange.__dict__ for exchange in exchanges]
+            }
+            try:
+                redis_client.setex(base_cache_key, CACHE_TTL, json.dumps(base_result))
+                print(f"DEBUG: Базовые данные успешно сохранены в кэш Redis с ключом {base_cache_key}")
+            except Exception as cache_error:
+                print(f"DEBUG: Ошибка при сохранении базовых данных в кэш: {str(cache_error)}")
         
-        # Сначала присваиваем ID всем биржам перед сортировкой
-        # Это позволит сохранить ID при любых сортировках
-        for i, exchange in enumerate(exchanges, start=1):
-            exchange.id = i
-            
+        # Применяем сортировку
+        print(f"DEBUG: Применяем сортировку к кешированным данным")
+        print(f"DEBUG: Присвоены ID для {len(exchanges)} бирж")
+        
         # Выполняем сортировку в зависимости от параметров
         if sort_by:
+            print(f"DEBUG: Сортировка по критерию: {sort_by}, по убыванию: {descending}")
             if sort_by == SortCriterion.ID:
                 # Сортировка по ID
                 exchanges.sort(key=lambda x: x.id, reverse=descending)  
+                print(f"DEBUG: Выполнена сортировка по ID")
             elif sort_by == SortCriterion.PRICE:
                 exchanges.sort(key=lambda x: float(x.price.replace(',', '')), reverse=descending)
+                print(f"DEBUG: Выполнена сортировка по цене")
             elif sort_by == SortCriterion.VOLUME:
                 exchanges.sort(key=lambda x: float(x.volume24h.replace('$', '').replace(',', '')), reverse=descending)
+                print(f"DEBUG: Выполнена сортировка по объему")
             elif sort_by == SortCriterion.PLUS_DEPTH:
                 exchanges.sort(key=lambda x: float(x.plusTwoPercentDepth.replace('$', '').replace(',', '')), reverse=descending)
+                print(f"DEBUG: Выполнена сортировка по глубине +2%")
             elif sort_by == SortCriterion.MINUS_DEPTH:
                 exchanges.sort(key=lambda x: float(x.minusTwoPercentDepth.replace('$', '').replace(',', '')), reverse=descending)
+                print(f"DEBUG: Выполнена сортировка по глубине -2%")
             elif sort_by == SortCriterion.EXCHANGE:
                 exchanges.sort(key=lambda x: x.exchange.lower(), reverse=descending)
+                print(f"DEBUG: Выполнена сортировка по названию биржи")
         else:
             # По умолчанию сортируем по объему торгов
             exchanges.sort(key=lambda x: float(x.volume24h.replace('$', '').replace(',', '')), reverse=True)
+            print(f"DEBUG: Выполнена сортировка по умолчанию (по объему, по убыванию)")
         
-        # После сортировки, если не сортируем по ID, переназначаем ID
-        # чтобы они соответствовали новому порядку
-        if sort_by != SortCriterion.ID:
-            for i, exchange in enumerate(exchanges, start=1):
-                exchange.id = i
+        # После сортировки, переназначаем ID чтобы они соответствовали новому порядку
+        for i, exchange in enumerate(exchanges, start=1):
+            exchange.id = i
+        print(f"DEBUG: ID назначены после сортировки")
+        
+        # Выводим информацию о первых и последних элементах после сортировки для проверки
+        if exchanges:
+            first_exchange = exchanges[0]
+            last_exchange = exchanges[-1]
+            print(f"DEBUG: Первая биржа после сортировки: ID={first_exchange.id}, {first_exchange.exchange}, цена={first_exchange.price}, объем={first_exchange.volume24h}")
+            print(f"DEBUG: Последняя биржа после сортировки: ID={last_exchange.id}, {last_exchange.exchange}, цена={last_exchange.price}, объем={last_exchange.volume24h}")
                 
         result = {
             'status': 'success',
             'data': exchanges
         }
         
-        # Более подробное логирование при сохранении в кэш
-        print(f"CACHE SET: Сохраняем данные в Redis с ключом {cache_key} и TTL {CACHE_TTL} секунд")
-        redis_client.setex(cache_key, CACHE_TTL, json.dumps(result, default=lambda o: o.__dict__))
+        # Сохраняем отсортированные данные в кэш
+        print(f"CACHE SET: Сохраняем отсортированные данные в Redis с ключом {sort_cache_key} и TTL {CACHE_TTL} секунд")
+        try:
+            redis_client.setex(sort_cache_key, CACHE_TTL, json.dumps(result, default=lambda o: o.__dict__))
+            print(f"DEBUG: Отсортированные данные успешно сохранены в кэш Redis")
+        except Exception as cache_error:
+            print(f"DEBUG: Ошибка при сохранении отсортированных данных в кэш: {str(cache_error)}")
         
         return result
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при получении данных по LTC: {str(e)}")
+
+# Выделяем получение данных из API в отдельную функцию
+async def fetch_exchange_data_from_api():
+    """
+    Получает данные о биржах из API CoinGecko и обрабатывает их
+    """
+    # Получаем список бирж для сопоставления иконок
+    exchanges_response = requests.get("https://api.coingecko.com/api/v3/exchanges")
+    exchange_icon_mapping = {}
+    if exchanges_response.status_code == 200:
+        exchanges_data = exchanges_response.json()
+        print(f"DEBUG: Получено {len(exchanges_data)} бирж из API exchanges")
+        for ex in exchanges_data:
+            exchange_icon_mapping[ex["id"]] = ex.get("image")
+    else:
+        print(f"DEBUG: Ошибка API exchanges: {exchanges_response.status_code}, {exchanges_response.text[:200]}")
+    
+    # Получаем данные о Litecoin с CoinGecko
+    response = requests.get('https://api.coingecko.com/api/v3/coins/litecoin/tickers')
+    if response.status_code != 200:
+        print(f"DEBUG: Ошибка API tickers: {response.status_code}, {response.text[:200]}")
+        raise HTTPException(status_code=response.status_code, 
+                            detail=f"Ошибка API CoinGecko: {response.text}")
+    
+    data = response.json()
+    exchanges = []
+    
+    print(f"DEBUG: Получено {len(data['tickers'])} тикеров, фильтруем по USDT")
+    usdt_tickers_count = 0
+    
+    for ticker in data['tickers']:
+        # Фильтруем только пары LTC/USDT
+        if ticker['target'] == 'USDT':
+            usdt_tickers_count += 1
+            base_volume_usd = ticker['converted_volume'].get('usd', 0)
+            
+            # Расчет значений глубины ордеров (примерные расчеты)
+            plus_two_percent_depth = math.floor(base_volume_usd * 0.06)
+            minus_two_percent_depth = math.floor(base_volume_usd * 0.05)
+            
+            # Получаем информацию о бирже и сопоставляем с иконкой
+            market_info = ticker.get('market', {})
+            exchange_identifier = market_info.get('identifier')
+            exchange_name = market_info.get('name', 'Unknown')
+            
+            # Пытаемся найти иконку сначала по идентификатору
+            icon_url = exchange_icon_mapping.get(exchange_identifier)
+            
+            # Отладочная информация о попытке сопоставления
+            icon_found_method = "identifier"
+            
+            # Если иконка не найдена по идентификатору, пробуем поискать по имени или с преобразованием регистра
+            if not icon_url:
+                # Ищем биржу в маппинге по имени или с преобразованием регистра
+                for exchange_id, icon in exchange_icon_mapping.items():
+                    if exchange_id.lower() == exchange_identifier.lower():
+                        icon_url = icon
+                        icon_found_method = "identifier_lowercase"
+                        break
+                    elif exchange_id.lower() == exchange_name.lower():
+                        icon_url = icon
+                        icon_found_method = "name_lowercase"
+                        break
+            
+            # Вывод отладочной информации для всех бирж
+            if icon_url:
+                print(f"DEBUG: Биржа '{exchange_name}' (id: {exchange_identifier}): иконка найдена через {icon_found_method}")
+            else:
+                print(f"DEBUG: ⚠️ Биржа '{exchange_name}' (id: {exchange_identifier}): иконка НЕ найдена!")
+                # Выводим список возможных совпадений для облегчения диагностики
+                possible_matches = []
+                for exchange_id in exchange_icon_mapping.keys():
+                    if exchange_identifier.lower() in exchange_id.lower() or exchange_name.lower() in exchange_id.lower():
+                        possible_matches.append(exchange_id)
+                if possible_matches:
+                    print(f"DEBUG: Возможные совпадения для '{exchange_name}': {possible_matches}")
+            
+            exchange_data = ExchangeData(
+                id=0,  # Временный ID, переназначим позже
+                exchange=exchange_name,
+                pair='LTC/USDT',
+                price=f"{float(ticker['last']):.4f}",
+                plusTwoPercentDepth=f"${plus_two_percent_depth:,}",
+                minusTwoPercentDepth=f"${minus_two_percent_depth:,}",
+                volume24h=f"${math.floor(base_volume_usd):,}",
+                volumePercentage=f"{ticker.get('bid_ask_spread_percentage', 1.0):.2f}%",
+                lastUpdated='Recently',
+                icon=icon_url
+            )
+            
+            exchanges.append(exchange_data)
+    
+    print(f"DEBUG: Обработано {usdt_tickers_count} USDT тикеров")
+    
+    # Добавляем пользовательские биржи к основному списку
+    custom_exchange_count = len(custom_exchanges)
+    print(f"DEBUG: Добавляем {custom_exchange_count} пользовательских бирж")
+    for custom_exchange in custom_exchanges.values():
+        # Обновляем цену для бирж с процентной корректировкой
+        if custom_exchange.price_percent is not None:
+            binance_price = await get_binance_ltc_price()
+            if binance_price > 0:
+                calculated_price = binance_price * (1 + custom_exchange.price_percent / 100)
+                price_str = f"{calculated_price:.4f}"
+            else:
+                price_str = custom_exchange.price
+        else:
+            price_str = custom_exchange.price
+        
+        # Копируем данные, чтобы избежать изменения оригинального объекта
+        exchange_copy = ExchangeData(
+            id=0,  # Временный ID, переназначим позже
+            exchange=custom_exchange.exchange,
+            pair=custom_exchange.pair,
+            price=price_str,  # Используем обновленную цену
+            price_percent=custom_exchange.price_percent,
+            plusTwoPercentDepth=custom_exchange.plusTwoPercentDepth,
+            minusTwoPercentDepth=custom_exchange.minusTwoPercentDepth,
+            volume24h=custom_exchange.volume24h,
+            volumePercentage=custom_exchange.volumePercentage,
+            lastUpdated=custom_exchange.lastUpdated,
+            icon=custom_exchange.icon
+        )
+        exchanges.append(exchange_copy)
+    
+    # Присваиваем начальные ID всем биржам
+    for i, exchange in enumerate(exchanges, start=1):
+        exchange.id = i
+    
+    return exchanges
 
 @app.get("/api/ltc-exchanges-cmc", response_model=ExchangeResponse, tags=["exchanges"])
 async def get_ltc_exchanges_cmc():
@@ -666,4 +768,3 @@ async def root():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-

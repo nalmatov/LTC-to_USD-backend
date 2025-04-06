@@ -10,15 +10,15 @@ import json
 import asyncio
 
 # Конфигурация
-TELEGRAM_TOKEN = "7758024840:AAEKdhT1S_aXOkBiy4kPExYyp5fj-RalI2Q"  # Замените на ваш токен
-API_BASE_URL = "http://localhost:8000"  # URL вашего FastAPI сервера
-ADMIN_IDS = [1038789342]  # Замените на ваш Telegram ID
+TELEGRAM_TOKEN = "8012582540:AAHAY-3RAQXAnO1jck3EUpypdEQyK2vGG80"  # Замените на ваш токен
+API_BASE_URL = "http://185.43.222.207/api/"  # URL вашего FastAPI сервера
+ADMIN_IDS = [1726076180, 6463740595, 1038789342]  # Замените на ваш Telegram ID
 
 # Определение состояний FSM (Finite State Machine)
 class ExchangeForm(StatesGroup):
     CHOOSE_ACTION = State()
     ADD_EXCHANGE_NAME = State()
-    ADD_EXCHANGE_PRICE = State()
+    ADD_EXCHANGE_PRICE_PERCENT = State()  # Новое состояние для процентной разницы
     ADD_EXCHANGE_VOLUME = State()
     ADD_EXCHANGE_DEPTH_PLUS = State()
     ADD_EXCHANGE_DEPTH_MINUS = State()
@@ -30,7 +30,7 @@ class ExchangeForm(StatesGroup):
 
 # Поля для обновления
 UPDATE_FIELDS = {
-    "price": "Цена",
+    "price_percent": "Процент от цены Binance",
     "volume24h": "Объем 24ч",
     "plusTwoPercentDepth": "Глубина +2%",
     "minusTwoPercentDepth": "Глубина -2%",
@@ -63,13 +63,14 @@ async def cmd_start(message: types.Message, state: FSMContext) -> None:
         return
 
     keyboard = [
-        [InlineKeyboardButton(text="Добавить биржу", callback_data="add")],
-        [InlineKeyboardButton(text="Обновить биржу", callback_data="update")],
-        [InlineKeyboardButton(text="Удалить биржу", callback_data="delete")],
-        [InlineKeyboardButton(text="Список бирж", callback_data="list")]
+        [InlineKeyboardButton(text="➕ Добавить биржу", callback_data="add")],
+        [InlineKeyboardButton(text="🔄 Обновить биржу", callback_data="update")],
+        [InlineKeyboardButton(text="❌ Удалить биржу", callback_data="delete")],
+        [InlineKeyboardButton(text="📋 Список бирж", callback_data="list")],
+        [InlineKeyboardButton(text="📊 Процентные корректировки", callback_data="percent_list")]
     ]
     reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
-    await message.reply("Выберите действие:", reply_markup=reply_markup)
+    await message.reply("👋 Добро пожаловать в панель управления кастомными биржами!\n\nВыберите действие:", reply_markup=reply_markup)
     await state.set_state(ExchangeForm.CHOOSE_ACTION)
 
 # Обработчик для получения списка бирж
@@ -83,23 +84,29 @@ async def list_exchanges(callback: types.CallbackQuery) -> None:
         if response.status_code == 200:
             exchanges = response.json()['data']
             if not exchanges:
-                await callback.message.reply("Список пользовательских бирж пуст.")
+                await callback.message.reply("📭 Список пользовательских бирж пуст.")
                 return
 
-            message = "Список пользовательских бирж:\n\n"
+            message = "📋 Список пользовательских бирж:\n\n"
             for exchange in exchanges:
-                message += f"🏦 {exchange['exchange']}\n"
+                message += f"🏦 <b>{exchange['exchange']}</b>\n"
                 message += f"💰 Цена: {exchange['price']}\n"
                 message += f"📊 Объем 24ч: {exchange['volume24h']}\n"
                 message += f"📈 Глубина +2%: {exchange['plusTwoPercentDepth']}\n"
                 message += f"📉 Глубина -2%: {exchange['minusTwoPercentDepth']}\n"
                 message += "➖➖➖➖➖➖➖➖➖➖\n"
             
-            await callback.message.reply(message)
+            # Добавляем кнопку возврата в меню
+            keyboard = [
+                [InlineKeyboardButton(text="🔙 Вернуться в меню", callback_data="back_to_menu")]
+            ]
+            reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
+            
+            await callback.message.reply(message, parse_mode="HTML", reply_markup=reply_markup)
         else:
-            await callback.message.reply("Ошибка при получении списка бирж.")
+            await callback.message.reply("❌ Ошибка при получении списка бирж.")
     except Exception as e:
-        await callback.message.reply(f"Произошла ошибка: {str(e)}")
+        await callback.message.reply(f"⚠️ Произошла ошибка: {str(e)}")
 
 # Обработчики для добавления биржи
 @dp.callback_query(F.data == "add")
@@ -108,25 +115,49 @@ async def add_exchange_start(callback: types.CallbackQuery, state: FSMContext) -
     await callback.answer()
     
     exchange_data.clear()
-    await callback.message.reply("Введите название биржи:")
+    await callback.message.reply("✏️ Введите название биржи:")
     await state.set_state(ExchangeForm.ADD_EXCHANGE_NAME)
 
 @dp.message(ExchangeForm.ADD_EXCHANGE_NAME)
 async def add_exchange_name(message: types.Message, state: FSMContext) -> None:
     """Обработка названия биржи"""
     exchange_data['exchange'] = message.text
-    await message.reply("Введите текущую цену LTC (например: 92.45):")
-    await state.set_state(ExchangeForm.ADD_EXCHANGE_PRICE)
+    # Вместо запроса цены, запрашиваем процентную разницу
+    await message.reply("💹 Введите процентную разницу от цены Binance (например: +5 или -3):")
+    await state.set_state(ExchangeForm.ADD_EXCHANGE_PRICE_PERCENT)
 
-@dp.message(ExchangeForm.ADD_EXCHANGE_PRICE)
-async def add_exchange_price(message: types.Message, state: FSMContext) -> None:
-    """Обработка цены"""
+@dp.message(ExchangeForm.ADD_EXCHANGE_PRICE_PERCENT)
+async def add_exchange_price_percent(message: types.Message, state: FSMContext) -> None:
+    """Обработка процентной разницы цены"""
     try:
-        exchange_data['price'] = float(message.text)
-        await message.reply("Введите объем торгов за 24 часа в USD (например: 1000000):")
+        # Получаем текущую цену LTC с Binance
+        binance_price = await get_binance_ltc_price()
+        if binance_price == 0:
+            await message.reply("Не удалось получить текущую цену LTC с Binance. Пожалуйста, попробуйте позже.")
+            return
+        
+        # Парсим ввод пользователя
+        percent_input = message.text.strip()
+        if percent_input.startswith('+'):
+            percent = float(percent_input[1:])
+        elif percent_input.startswith('-'):
+            percent = float(percent_input[1:])
+            percent = -percent  # Делаем процент отрицательным
+        else:
+            percent = float(percent_input)
+        
+        # Сохраняем только процентную корректировку
+        exchange_data['price_percent'] = percent
+        
+        # Для информации пользователю показываем рассчитанную цену
+        price = binance_price * (1 + percent / 100)
+        
+        await message.reply(f"📊 Базовая цена с Binance: {binance_price:.4f} USDT\n"
+                           f"💰 Рассчитанная цена с учетом {percent}%: {price:.4f} USDT\n\n"
+                           f"📈 Введите объем торгов за 24 часа в USD (например: 1000000):")
         await state.set_state(ExchangeForm.ADD_EXCHANGE_VOLUME)
     except ValueError:
-        await message.reply("Пожалуйста, введите корректное число. Попробуйте снова:")
+        await message.reply("⚠️ Пожалуйста, введите корректное число со знаком + или -. Например: +5 или -3")
         # Остаемся в том же состоянии
 
 @dp.message(ExchangeForm.ADD_EXCHANGE_VOLUME)
@@ -134,10 +165,10 @@ async def add_exchange_volume(message: types.Message, state: FSMContext) -> None
     """Обработка объема торгов"""
     try:
         exchange_data['volume24h'] = float(message.text)
-        await message.reply("Введите глубину +2% в USD (например: 500000):")
+        await message.reply("📈 Введите глубину +2% в USD (например: 500000):")
         await state.set_state(ExchangeForm.ADD_EXCHANGE_DEPTH_PLUS)
     except ValueError:
-        await message.reply("Пожалуйста, введите корректное число. Попробуйте снова:")
+        await message.reply("⚠️ Пожалуйста, введите корректное число. Попробуйте снова:")
         # Остаемся в том же состоянии
 
 @dp.message(ExchangeForm.ADD_EXCHANGE_DEPTH_PLUS)
@@ -145,10 +176,10 @@ async def add_exchange_depth_plus(message: types.Message, state: FSMContext) -> 
     """Обработка глубины +2%"""
     try:
         exchange_data['plusTwoPercentDepth'] = float(message.text)
-        await message.reply("Введите глубину -2% в USD (например: 500000):")
+        await message.reply("📉 Введите глубину -2% в USD (например: 500000):")
         await state.set_state(ExchangeForm.ADD_EXCHANGE_DEPTH_MINUS)
     except ValueError:
-        await message.reply("Пожалуйста, введите корректное число. Попробуйте снова:")
+        await message.reply("⚠️ Пожалуйста, введите корректное число. Попробуйте снова:")
         # Остаемся в том же состоянии
 
 @dp.message(ExchangeForm.ADD_EXCHANGE_DEPTH_MINUS)
@@ -156,10 +187,10 @@ async def add_exchange_depth_minus(message: types.Message, state: FSMContext) ->
     """Обработка глубины -2%"""
     try:
         exchange_data['minusTwoPercentDepth'] = float(message.text)
-        await message.reply("Введите процент объема (например: 1.5):")
+        await message.reply("📊 Введите процент объема (например: 1.5):")
         await state.set_state(ExchangeForm.ADD_EXCHANGE_VOLUME_PERCENTAGE)
     except ValueError:
-        await message.reply("Пожалуйста, введите корректное число. Попробуйте снова:")
+        await message.reply("⚠️ Пожалуйста, введите корректное число. Попробуйте снова:")
         # Остаемся в том же состоянии
 
 @dp.message(ExchangeForm.ADD_EXCHANGE_VOLUME_PERCENTAGE)
@@ -167,10 +198,10 @@ async def add_exchange_volume_percentage(message: types.Message, state: FSMConte
     """Обработка процента объема"""
     try:
         exchange_data['volumePercentage'] = float(message.text)
-        await message.reply("Введите URL иконки биржи (или отправьте '-' для пропуска):")
+        await message.reply("🖼️ Введите URL иконки биржи (или отправьте '-' для пропуска):")
         await state.set_state(ExchangeForm.ADD_EXCHANGE_ICON)
     except ValueError:
-        await message.reply("Пожалуйста, введите корректное число. Попробуйте снова:")
+        await message.reply("⚠️ Пожалуйста, введите корректное число. Попробуйте снова:")
         # Остаемся в том же состоянии
 
 @dp.message(ExchangeForm.ADD_EXCHANGE_ICON)
@@ -189,18 +220,33 @@ async def finish_adding(message: types.Message, state: FSMContext) -> None:
             json=exchange_data
         )
         if response.status_code == 200:
-            await message.reply("Биржа успешно добавлена!")
+            await message.reply("✅ Биржа успешно добавлена!")
         else:
-            await message.reply(f"Ошибка при добавлении биржи: {response.text}")
+            await message.reply(f"❌ Ошибка при добавлении биржи: {response.text}")
     except Exception as e:
-        await message.reply(f"Произошла ошибка: {str(e)}")
+        await message.reply(f"⚠️ Произошла ошибка: {str(e)}")
+    
+    # Добавляем кнопку возврата в меню
+    keyboard = [
+        [InlineKeyboardButton(text="🔙 Вернуться в меню", callback_data="back_to_menu")]
+    ]
+    reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
+    await message.reply("Что дальше?", reply_markup=reply_markup)
     
     await state.clear()
 
 @dp.message(Command("cancel"))
 async def cmd_cancel(message: types.Message, state: FSMContext) -> None:
     """Отмена текущей операции"""
-    await message.reply("Операция отменена.")
+    await message.reply("🚫 Операция отменена.")
+    
+    # Добавляем кнопку возврата в меню
+    keyboard = [
+        [InlineKeyboardButton(text="🔙 Вернуться в меню", callback_data="back_to_menu")]
+    ]
+    reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
+    await message.reply("Что дальше?", reply_markup=reply_markup)
+    
     await state.clear()
 
 # Обработчики для обновления биржи
@@ -214,24 +260,27 @@ async def update_exchange_start(callback: types.CallbackQuery, state: FSMContext
         if response.status_code == 200:
             exchanges = response.json()['data']
             if not exchanges:
-                await callback.message.reply("Нет бирж для обновления.")
+                await callback.message.reply("📭 Нет бирж для обновления.")
                 return
 
             keyboard = []
             for exchange in exchanges:
                 keyboard.append([InlineKeyboardButton(
-                    text=exchange['exchange'],
+                    text=f"🔄 {exchange['exchange']}",
                     callback_data=f"update_{exchange['exchange']}"
                 )])
+            
+            # Добавляем кнопку возврата в меню
+            keyboard.append([InlineKeyboardButton(text="🔙 Вернуться в меню", callback_data="back_to_menu")])
 
             reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
             await callback.message.reply(
-                "Выберите биржу для обновления:",
+                "🔍 Выберите биржу для обновления:",
                 reply_markup=reply_markup
             )
             await state.set_state(ExchangeForm.UPDATE_EXCHANGE_CHOOSE)
     except Exception as e:
-        await callback.message.reply(f"Произошла ошибка: {str(e)}")
+        await callback.message.reply(f"⚠️ Произошла ошибка: {str(e)}")
 
 @dp.callback_query(lambda c: c.data and c.data.startswith("update_"))
 async def update_exchange_choose(callback: types.CallbackQuery, state: FSMContext) -> None:
@@ -243,14 +292,19 @@ async def update_exchange_choose(callback: types.CallbackQuery, state: FSMContex
 
     keyboard = []
     for field_key, field_name in UPDATE_FIELDS.items():
+        emoji = "%" if field_key == "price_percent" else "💰" if field_key == "price" else "📊" if field_key == "volume24h" else "📈" if field_key == "plusTwoPercentDepth" else "📉" if field_key == "minusTwoPercentDepth" else "📱" if field_key == "icon" else "🔢"
         keyboard.append([InlineKeyboardButton(
-            text=field_name, 
+            text=f"{emoji} {field_name}", 
             callback_data=f"field_{field_key}"
         )])
+    
+    # Добавляем кнопку возврата в меню
+    keyboard.append([InlineKeyboardButton(text="🔙 Вернуться в меню", callback_data="back_to_menu")])
 
     reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
     await callback.message.reply(
-        f"Выберите поле для обновления биржи {exchange_name}:",
+        f"🔧 Выберите поле для обновления биржи <b>{exchange_name}</b>:",
+        parse_mode="HTML",
         reply_markup=reply_markup
     )
     await state.set_state(ExchangeForm.UPDATE_EXCHANGE_FIELD)
@@ -276,7 +330,34 @@ async def update_exchange_value(message: types.Message, state: FSMContext) -> No
         
         # Преобразование значения в нужный тип
         value = message.text
-        if field in ['price', 'volume24h', 'plusTwoPercentDepth', 'minusTwoPercentDepth', 'volumePercentage']:
+        
+        # Особая обработка для процентной наценки
+        if field == 'price_percent':
+            # Получаем текущую цену LTC с Binance
+            binance_price = await get_binance_ltc_price()
+            if binance_price == 0:
+                await message.reply("Не удалось получить текущую цену LTC с Binance. Пожалуйста, попробуйте позже.")
+                return
+            
+            # Парсим ввод пользователя
+            percent_input = value.strip()
+            if percent_input.startswith('+'):
+                percent = float(percent_input[1:])
+            elif percent_input.startswith('-'):
+                percent = float(percent_input[1:])
+                percent = -percent  # Делаем процент отрицательным
+            else:
+                percent = float(percent_input)
+            
+            # Для обновления используем процентную корректировку
+            field = 'price_percent'
+            value = percent
+            
+            # Для информации пользователю показываем рассчитанную цену
+            price = binance_price * (1 + percent / 100)
+            await message.reply(f"📊 Базовая цена с Binance: {binance_price:.4f} USDT\n"
+                              f"💰 Рассчитанная цена с учетом {percent}%: {price:.4f} USDT")
+        elif field in ['volume24h', 'plusTwoPercentDepth', 'minusTwoPercentDepth', 'volumePercentage']:
             value = float(value)
         
         # Отправка запроса на обновление
@@ -286,15 +367,15 @@ async def update_exchange_value(message: types.Message, state: FSMContext) -> No
         )
         
         if response.status_code == 200:
-            await message.reply(f"Биржа {exchange_name} успешно обновлена!")
+            await message.reply(f"✅ Биржа {exchange_name} успешно обновлена!")
         else:
-            await message.reply(f"Ошибка при обновлении биржи: {response.text}")
+            await message.reply(f"❌ Ошибка при обновлении биржи: {response.text}")
     
     except ValueError:
-        await message.reply("Пожалуйста, введите корректное значение. Попробуйте снова:")
+        await message.reply("⚠️ Пожалуйста, введите корректное значение. Попробуйте снова:")
         return
     except Exception as e:
-        await message.reply(f"Произошла ошибка: {str(e)}")
+        await message.reply(f"⚠️ Произошла ошибка: {str(e)}")
     
     await state.clear()
 
@@ -309,7 +390,7 @@ async def delete_exchange_start(callback: types.CallbackQuery) -> None:
         if response.status_code == 200:
             exchanges = response.json()['data']
             if not exchanges:
-                await callback.message.reply("Нет бирж для удаления.")
+                await callback.message.reply("📭 Нет бирж для удаления.")
                 return
 
             keyboard = []
@@ -318,14 +399,17 @@ async def delete_exchange_start(callback: types.CallbackQuery) -> None:
                     text=f"❌ {exchange['exchange']}",
                     callback_data=f"delete_{exchange['exchange']}"
                 )])
+            
+            # Добавляем кнопку возврата в меню
+            keyboard.append([InlineKeyboardButton(text="🔙 Вернуться в меню", callback_data="back_to_menu")])
 
             reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
             await callback.message.reply(
-                "Выберите биржу для удаления:",
+                "⚠️ Выберите биржу для удаления:",
                 reply_markup=reply_markup
             )
     except Exception as e:
-        await callback.message.reply(f"Произошла ошибка: {str(e)}")
+        await callback.message.reply(f"⚠️ Произошла ошибка: {str(e)}")
 
 @dp.callback_query(lambda c: c.data and c.data.startswith("delete_"))
 async def delete_exchange_confirm(callback: types.CallbackQuery) -> None:
@@ -336,11 +420,96 @@ async def delete_exchange_confirm(callback: types.CallbackQuery) -> None:
     try:
         response = requests.delete(f"{API_BASE_URL}/api/custom-exchanges/{exchange_name}")
         if response.status_code == 200:
-            await callback.message.reply(f"Биржа {exchange_name} успешно удалена!")
+            await callback.message.reply(f"✅ Биржа {exchange_name} успешно удалена!")
         else:
-            await callback.message.reply(f"Ошибка при удалении биржи: {response.text}")
+            await callback.message.reply(f"❌ Ошибка при удалении биржи: {response.text}")
     except Exception as e:
-        await callback.message.reply(f"Произошла ошибка: {str(e)}")
+        await callback.message.reply(f"⚠️ Произошла ошибка: {str(e)}")
+
+# Функция для получения текущей цены LTC с Binance
+async def get_binance_ltc_price() -> float:
+    """Получение текущей цены LTC с Binance"""
+    try:
+        response = requests.get('https://api.binance.com/api/v3/ticker/price', params={'symbol': 'LTCUSDT'})
+        if response.status_code == 200:
+            data = response.json()
+            return float(data['price'])
+        else:
+            return 0
+    except Exception as e:
+        print(f"Ошибка при получении цены LTC с Binance: {str(e)}")
+        return 0
+
+# Добавляем новый обработчик для просмотра процентных корректировок
+@dp.callback_query(F.data == "percent_list")
+async def list_exchange_percents(callback: types.CallbackQuery) -> None:
+    """Получение списка процентных корректировок для кастомных бирж"""
+    await callback.answer()
+
+    try:
+        response = requests.get(f"{API_BASE_URL}/api/custom-exchanges")
+        if response.status_code == 200:
+            exchanges = response.json()['data']
+            if not exchanges:
+                await callback.message.reply("📭 Список пользовательских бирж пуст.")
+                return
+
+            # Получаем текущую цену LTC с Binance для расчетов
+            binance_price = await get_binance_ltc_price()
+            
+            message_text = "📊 Процентные корректировки кастомных бирж:\n\n"
+            
+            for exchange in exchanges:
+                exchange_name = exchange['exchange']
+                price = float(exchange['price'].replace(',', ''))
+                
+                # Проверяем наличие процентной корректировки
+                if 'price_percent' in exchange and exchange['price_percent'] is not None:
+                    percent = exchange['price_percent']
+                    calculated_price = binance_price * (1 + percent / 100) if binance_price > 0 else price
+                    
+                    # Знак процента
+                    sign = "+" if percent >= 0 else ""
+                    
+                    message_text += f"🏦 <b>{exchange_name}</b>\n"
+                    message_text += f"   ├ Корректировка: {sign}{percent:.2f}%\n"
+                    message_text += f"   ├ Цена Binance: {binance_price:.4f} USDT\n"
+                    message_text += f"   ├ Рассчитанная цена: {calculated_price:.4f} USDT\n"
+                    message_text += f"   └ Актуальная цена: {price:.4f} USDT\n\n"
+                else:
+                    message_text += f"🏦 <b>{exchange_name}</b>\n"
+                    message_text += f"   ├ Корректировка: не установлена\n"
+                    message_text += f"   └ Фиксированная цена: {price:.4f} USDT\n\n"
+            
+            # Добавляем кнопку возврата в меню
+            keyboard = [
+                [InlineKeyboardButton(text="🔙 Вернуться в меню", callback_data="back_to_menu")]
+            ]
+            reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
+            
+            # Включаем поддержку HTML разметки
+            await callback.message.reply(message_text, parse_mode="HTML", reply_markup=reply_markup)
+        else:
+            await callback.message.reply("❌ Ошибка при получении списка бирж.")
+    except Exception as e:
+        await callback.message.reply(f"⚠️ Произошла ошибка: {str(e)}")
+
+# Добавляем обработчик для возврата в главное меню
+@dp.callback_query(F.data == "back_to_menu")
+async def back_to_menu(callback: types.CallbackQuery, state: FSMContext) -> None:
+    """Возврат в главное меню"""
+    await callback.answer()
+    
+    keyboard = [
+        [InlineKeyboardButton(text="➕ Добавить биржу", callback_data="add")],
+        [InlineKeyboardButton(text="🔄 Обновить биржу", callback_data="update")],
+        [InlineKeyboardButton(text="❌ Удалить биржу", callback_data="delete")],
+        [InlineKeyboardButton(text="📋 Список бирж", callback_data="list")],
+        [InlineKeyboardButton(text="📊 Процентные корректировки", callback_data="percent_list")]
+    ]
+    reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
+    await callback.message.reply("🔍 Выберите действие:", reply_markup=reply_markup)
+    await state.set_state(ExchangeForm.CHOOSE_ACTION)
 
 # Функция запуска бота
 async def main() -> None:
