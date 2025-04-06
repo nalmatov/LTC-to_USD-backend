@@ -1,0 +1,422 @@
+[
+    {
+        "label": "os",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "os",
+        "description": "os",
+        "detail": "os",
+        "documentation": {}
+    },
+    {
+        "label": "Bot",
+        "importPath": "aiogram",
+        "description": "aiogram",
+        "isExtraImport": true,
+        "detail": "aiogram",
+        "documentation": {}
+    },
+    {
+        "label": "Dispatcher",
+        "importPath": "aiogram",
+        "description": "aiogram",
+        "isExtraImport": true,
+        "detail": "aiogram",
+        "documentation": {}
+    },
+    {
+        "label": "types",
+        "importPath": "aiogram",
+        "description": "aiogram",
+        "isExtraImport": true,
+        "detail": "aiogram",
+        "documentation": {}
+    },
+    {
+        "label": "F",
+        "importPath": "aiogram",
+        "description": "aiogram",
+        "isExtraImport": true,
+        "detail": "aiogram",
+        "documentation": {}
+    },
+    {
+        "label": "Command",
+        "importPath": "aiogram.filters",
+        "description": "aiogram.filters",
+        "isExtraImport": true,
+        "detail": "aiogram.filters",
+        "documentation": {}
+    },
+    {
+        "label": "FSMContext",
+        "importPath": "aiogram.fsm.context",
+        "description": "aiogram.fsm.context",
+        "isExtraImport": true,
+        "detail": "aiogram.fsm.context",
+        "documentation": {}
+    },
+    {
+        "label": "State",
+        "importPath": "aiogram.fsm.state",
+        "description": "aiogram.fsm.state",
+        "isExtraImport": true,
+        "detail": "aiogram.fsm.state",
+        "documentation": {}
+    },
+    {
+        "label": "StatesGroup",
+        "importPath": "aiogram.fsm.state",
+        "description": "aiogram.fsm.state",
+        "isExtraImport": true,
+        "detail": "aiogram.fsm.state",
+        "documentation": {}
+    },
+    {
+        "label": "MemoryStorage",
+        "importPath": "aiogram.fsm.storage.memory",
+        "description": "aiogram.fsm.storage.memory",
+        "isExtraImport": true,
+        "detail": "aiogram.fsm.storage.memory",
+        "documentation": {}
+    },
+    {
+        "label": "InlineKeyboardButton",
+        "importPath": "aiogram.types",
+        "description": "aiogram.types",
+        "isExtraImport": true,
+        "detail": "aiogram.types",
+        "documentation": {}
+    },
+    {
+        "label": "InlineKeyboardMarkup",
+        "importPath": "aiogram.types",
+        "description": "aiogram.types",
+        "isExtraImport": true,
+        "detail": "aiogram.types",
+        "documentation": {}
+    },
+    {
+        "label": "requests",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "requests",
+        "description": "requests",
+        "detail": "requests",
+        "documentation": {}
+    },
+    {
+        "label": "json",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "json",
+        "description": "json",
+        "detail": "json",
+        "documentation": {}
+    },
+    {
+        "label": "asyncio",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "asyncio",
+        "description": "asyncio",
+        "detail": "asyncio",
+        "documentation": {}
+    },
+    {
+        "label": "FastAPI",
+        "importPath": "fastapi",
+        "description": "fastapi",
+        "isExtraImport": true,
+        "detail": "fastapi",
+        "documentation": {}
+    },
+    {
+        "label": "HTTPException",
+        "importPath": "fastapi",
+        "description": "fastapi",
+        "isExtraImport": true,
+        "detail": "fastapi",
+        "documentation": {}
+    },
+    {
+        "label": "CORSMiddleware",
+        "importPath": "fastapi.middleware.cors",
+        "description": "fastapi.middleware.cors",
+        "isExtraImport": true,
+        "detail": "fastapi.middleware.cors",
+        "documentation": {}
+    },
+    {
+        "label": "BaseModel",
+        "importPath": "pydantic",
+        "description": "pydantic",
+        "isExtraImport": true,
+        "detail": "pydantic",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Optional",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Dict",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Union",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "math",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "math",
+        "description": "math",
+        "detail": "math",
+        "documentation": {}
+    },
+    {
+        "label": "redis",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "redis",
+        "description": "redis",
+        "detail": "redis",
+        "documentation": {}
+    },
+    {
+        "label": "time",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "time",
+        "description": "time",
+        "detail": "time",
+        "documentation": {}
+    },
+    {
+        "label": "datetime",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "Enum",
+        "importPath": "enum",
+        "description": "enum",
+        "isExtraImport": true,
+        "detail": "enum",
+        "documentation": {}
+    },
+    {
+        "label": "ExchangeForm",
+        "kind": 6,
+        "importPath": "bot",
+        "description": "bot",
+        "peekOfCode": "class ExchangeForm(StatesGroup):\n    CHOOSE_ACTION = State()\n    ADD_EXCHANGE_NAME = State()\n    ADD_EXCHANGE_PRICE_PERCENT = State()  # Новое состояние для процентной разницы\n    ADD_EXCHANGE_VOLUME = State()\n    ADD_EXCHANGE_DEPTH_PLUS = State()\n    ADD_EXCHANGE_DEPTH_MINUS = State()\n    ADD_EXCHANGE_VOLUME_PERCENTAGE = State()\n    ADD_EXCHANGE_ICON = State()\n    UPDATE_EXCHANGE_CHOOSE = State()",
+        "detail": "bot",
+        "documentation": {}
+    },
+    {
+        "label": "TELEGRAM_TOKEN",
+        "kind": 5,
+        "importPath": "bot",
+        "description": "bot",
+        "peekOfCode": "TELEGRAM_TOKEN = \"8012582540:AAHAY-3RAQXAnO1jck3EUpypdEQyK2vGG80\"  # Замените на ваш токен\nAPI_BASE_URL = \"http://185.43.222.207/api/\"  # URL вашего FastAPI сервера\nADMIN_IDS = [1726076180, 6463740595, 1038789342]  # Замените на ваш Telegram ID\n# Определение состояний FSM (Finite State Machine)\nclass ExchangeForm(StatesGroup):\n    CHOOSE_ACTION = State()\n    ADD_EXCHANGE_NAME = State()\n    ADD_EXCHANGE_PRICE_PERCENT = State()  # Новое состояние для процентной разницы\n    ADD_EXCHANGE_VOLUME = State()\n    ADD_EXCHANGE_DEPTH_PLUS = State()",
+        "detail": "bot",
+        "documentation": {}
+    },
+    {
+        "label": "API_BASE_URL",
+        "kind": 5,
+        "importPath": "bot",
+        "description": "bot",
+        "peekOfCode": "API_BASE_URL = \"http://185.43.222.207/api/\"  # URL вашего FastAPI сервера\nADMIN_IDS = [1726076180, 6463740595, 1038789342]  # Замените на ваш Telegram ID\n# Определение состояний FSM (Finite State Machine)\nclass ExchangeForm(StatesGroup):\n    CHOOSE_ACTION = State()\n    ADD_EXCHANGE_NAME = State()\n    ADD_EXCHANGE_PRICE_PERCENT = State()  # Новое состояние для процентной разницы\n    ADD_EXCHANGE_VOLUME = State()\n    ADD_EXCHANGE_DEPTH_PLUS = State()\n    ADD_EXCHANGE_DEPTH_MINUS = State()",
+        "detail": "bot",
+        "documentation": {}
+    },
+    {
+        "label": "ADMIN_IDS",
+        "kind": 5,
+        "importPath": "bot",
+        "description": "bot",
+        "peekOfCode": "ADMIN_IDS = [1726076180, 6463740595, 1038789342]  # Замените на ваш Telegram ID\n# Определение состояний FSM (Finite State Machine)\nclass ExchangeForm(StatesGroup):\n    CHOOSE_ACTION = State()\n    ADD_EXCHANGE_NAME = State()\n    ADD_EXCHANGE_PRICE_PERCENT = State()  # Новое состояние для процентной разницы\n    ADD_EXCHANGE_VOLUME = State()\n    ADD_EXCHANGE_DEPTH_PLUS = State()\n    ADD_EXCHANGE_DEPTH_MINUS = State()\n    ADD_EXCHANGE_VOLUME_PERCENTAGE = State()",
+        "detail": "bot",
+        "documentation": {}
+    },
+    {
+        "label": "UPDATE_FIELDS",
+        "kind": 5,
+        "importPath": "bot",
+        "description": "bot",
+        "peekOfCode": "UPDATE_FIELDS = {\n    \"price_percent\": \"Процент от цены Binance\",\n    \"volume24h\": \"Объем 24ч\",\n    \"plusTwoPercentDepth\": \"Глубина +2%\",\n    \"minusTwoPercentDepth\": \"Глубина -2%\",\n    \"volumePercentage\": \"Процент объема\",\n    \"icon\": \"Иконка\"\n}\n# Временное хранилище данных для добавления биржи\nexchange_data = {}",
+        "detail": "bot",
+        "documentation": {}
+    },
+    {
+        "label": "exchange_data",
+        "kind": 5,
+        "importPath": "bot",
+        "description": "bot",
+        "peekOfCode": "exchange_data = {}\n# Инициализация бота и диспетчера\nbot = Bot(token=TELEGRAM_TOKEN)\nstorage = MemoryStorage()\ndp = Dispatcher(storage=storage)\n# Функция проверки прав администратора\nasync def check_admin(message: types.Message) -> bool:\n    \"\"\"Проверка прав администратора\"\"\"\n    user_id = message.from_user.id\n    if user_id not in ADMIN_IDS:",
+        "detail": "bot",
+        "documentation": {}
+    },
+    {
+        "label": "bot",
+        "kind": 5,
+        "importPath": "bot",
+        "description": "bot",
+        "peekOfCode": "bot = Bot(token=TELEGRAM_TOKEN)\nstorage = MemoryStorage()\ndp = Dispatcher(storage=storage)\n# Функция проверки прав администратора\nasync def check_admin(message: types.Message) -> bool:\n    \"\"\"Проверка прав администратора\"\"\"\n    user_id = message.from_user.id\n    if user_id not in ADMIN_IDS:\n        await message.reply(\"У вас нет прав для использования этого бота.\")\n        return False",
+        "detail": "bot",
+        "documentation": {}
+    },
+    {
+        "label": "storage",
+        "kind": 5,
+        "importPath": "bot",
+        "description": "bot",
+        "peekOfCode": "storage = MemoryStorage()\ndp = Dispatcher(storage=storage)\n# Функция проверки прав администратора\nasync def check_admin(message: types.Message) -> bool:\n    \"\"\"Проверка прав администратора\"\"\"\n    user_id = message.from_user.id\n    if user_id not in ADMIN_IDS:\n        await message.reply(\"У вас нет прав для использования этого бота.\")\n        return False\n    return True",
+        "detail": "bot",
+        "documentation": {}
+    },
+    {
+        "label": "dp",
+        "kind": 5,
+        "importPath": "bot",
+        "description": "bot",
+        "peekOfCode": "dp = Dispatcher(storage=storage)\n# Функция проверки прав администратора\nasync def check_admin(message: types.Message) -> bool:\n    \"\"\"Проверка прав администратора\"\"\"\n    user_id = message.from_user.id\n    if user_id not in ADMIN_IDS:\n        await message.reply(\"У вас нет прав для использования этого бота.\")\n        return False\n    return True\n# Обработчик команды /start",
+        "detail": "bot",
+        "documentation": {}
+    },
+    {
+        "label": "SortCriterion",
+        "kind": 6,
+        "importPath": "main",
+        "description": "main",
+        "peekOfCode": "class SortCriterion(str, Enum):\n    ID = \"id\"  # Добавляем новый критерий сортировки по ID\n    PRICE = \"price\"\n    VOLUME = \"volume\"\n    PLUS_DEPTH = \"plus_depth\"\n    MINUS_DEPTH = \"minus_depth\"\n    EXCHANGE = \"exchange\"\n    VOLUME_PERCENTAGE = \"volume_percentage\"  # Добавляем сортировку по проценту объема\n# Модели данных для типизации и документации\nclass ExchangeData(BaseModel):",
+        "detail": "main",
+        "documentation": {}
+    },
+    {
+        "label": "ExchangeData",
+        "kind": 6,
+        "importPath": "main",
+        "description": "main",
+        "peekOfCode": "class ExchangeData(BaseModel):\n    id: int\n    exchange: str\n    pair: str\n    price: str\n    price_percent: Optional[float] = None  # Добавляем поле для процентной корректировки\n    plusTwoPercentDepth: str\n    minusTwoPercentDepth: str\n    volume24h: str\n    volumePercentage: str",
+        "detail": "main",
+        "documentation": {}
+    },
+    {
+        "label": "ExchangeResponse",
+        "kind": 6,
+        "importPath": "main",
+        "description": "main",
+        "peekOfCode": "class ExchangeResponse(BaseModel):\n    status: str\n    data: List[ExchangeData]\nclass DepthData(BaseModel):\n    exchange: str\n    currentPrice: float\n    plus2PercentDepth: str\n    minus2PercentDepth: str\nclass DepthResponse(BaseModel):\n    status: str",
+        "detail": "main",
+        "documentation": {}
+    },
+    {
+        "label": "DepthData",
+        "kind": 6,
+        "importPath": "main",
+        "description": "main",
+        "peekOfCode": "class DepthData(BaseModel):\n    exchange: str\n    currentPrice: float\n    plus2PercentDepth: str\n    minus2PercentDepth: str\nclass DepthResponse(BaseModel):\n    status: str\n    data: DepthData\n# Глобальное хранилище для пользовательских бирж\ncustom_exchanges: Dict[str, ExchangeData] = {}",
+        "detail": "main",
+        "documentation": {}
+    },
+    {
+        "label": "DepthResponse",
+        "kind": 6,
+        "importPath": "main",
+        "description": "main",
+        "peekOfCode": "class DepthResponse(BaseModel):\n    status: str\n    data: DepthData\n# Глобальное хранилище для пользовательских бирж\ncustom_exchanges: Dict[str, ExchangeData] = {}\nclass CustomExchangeInput(BaseModel):\n    exchange: str\n    pair: str = \"LTC/USDT\"\n    price_percent: Optional[float] = None  # Добавляем поле для процентной корректировки\n    plusTwoPercentDepth: float",
+        "detail": "main",
+        "documentation": {}
+    },
+    {
+        "label": "CustomExchangeInput",
+        "kind": 6,
+        "importPath": "main",
+        "description": "main",
+        "peekOfCode": "class CustomExchangeInput(BaseModel):\n    exchange: str\n    pair: str = \"LTC/USDT\"\n    price_percent: Optional[float] = None  # Добавляем поле для процентной корректировки\n    plusTwoPercentDepth: float\n    minusTwoPercentDepth: float\n    volume24h: float\n    volumePercentage: float\n    icon: Optional[str] = None\nclass CustomExchangeUpdateInput(BaseModel):",
+        "detail": "main",
+        "documentation": {}
+    },
+    {
+        "label": "CustomExchangeUpdateInput",
+        "kind": 6,
+        "importPath": "main",
+        "description": "main",
+        "peekOfCode": "class CustomExchangeUpdateInput(BaseModel):\n    pair: Optional[str] = None\n    price: Optional[float] = None\n    price_percent: Optional[float] = None  # Добавляем поле для процентной корректировки\n    plusTwoPercentDepth: Optional[float] = None\n    minusTwoPercentDepth: Optional[float] = None\n    volume24h: Optional[float] = None\n    volumePercentage: Optional[float] = None\n    icon: Optional[str] = None\n@app.post(\"/api/custom-exchanges\", tags=[\"exchanges\"])",
+        "detail": "main",
+        "documentation": {}
+    },
+    {
+        "label": "PriceHistoryItem",
+        "kind": 6,
+        "importPath": "main",
+        "description": "main",
+        "peekOfCode": "class PriceHistoryItem(BaseModel):\n    \"\"\"Модель для элемента истории цены\"\"\"\n    date: str       # Дата в формате \"месяц/день\" (например, \"3/23\")\n    price: float    # Цена в USD\nclass PriceHistoryResponse(BaseModel):\n    \"\"\"Модель для ответа с историей цены\"\"\"\n    status: str\n    data: List[PriceHistoryItem]\n    currency: str = \"USD\"\n    period: str",
+        "detail": "main",
+        "documentation": {}
+    },
+    {
+        "label": "PriceHistoryResponse",
+        "kind": 6,
+        "importPath": "main",
+        "description": "main",
+        "peekOfCode": "class PriceHistoryResponse(BaseModel):\n    \"\"\"Модель для ответа с историей цены\"\"\"\n    status: str\n    data: List[PriceHistoryItem]\n    currency: str = \"USD\"\n    period: str\n@app.get(\"/api/ltc-price-history\", tags=[\"prices\"])\nasync def get_ltc_price_history(days: int = 30, daily_close: bool = True):\n    \"\"\"\n    Получает историю цены Litecoin за указанный период для построения графика.",
+        "detail": "main",
+        "documentation": {}
+    },
+    {
+        "label": "app",
+        "kind": 5,
+        "importPath": "main",
+        "description": "main",
+        "peekOfCode": "app = FastAPI(\n    title=\"LTC Exchange API\",\n    description=\"API для получения данных о биржах, торгующих Litecoin (LTC)\",\n    version=\"1.0.0\"\n)\n# Настройка CORS для доступа с фронтенда\napp.add_middleware(\n    CORSMiddleware,\n    allow_origins=[\"*\"],  # В продакшене укажите конкретные домены\n    allow_credentials=True,",
+        "detail": "main",
+        "documentation": {}
+    },
+    {
+        "label": "redis_client",
+        "kind": 5,
+        "importPath": "main",
+        "description": "main",
+        "peekOfCode": "redis_client = redis.Redis(host='redis', port=6379, db=0, decode_responses=True)\nCACHE_TTL = 180  # время жизни кэша - 3 минуты\n# Обновляем класс перечисления для поддержки возможных критериев сортировки\nclass SortCriterion(str, Enum):\n    ID = \"id\"  # Добавляем новый критерий сортировки по ID\n    PRICE = \"price\"\n    VOLUME = \"volume\"\n    PLUS_DEPTH = \"plus_depth\"\n    MINUS_DEPTH = \"minus_depth\"\n    EXCHANGE = \"exchange\"",
+        "detail": "main",
+        "documentation": {}
+    },
+    {
+        "label": "CACHE_TTL",
+        "kind": 5,
+        "importPath": "main",
+        "description": "main",
+        "peekOfCode": "CACHE_TTL = 180  # время жизни кэша - 3 минуты\n# Обновляем класс перечисления для поддержки возможных критериев сортировки\nclass SortCriterion(str, Enum):\n    ID = \"id\"  # Добавляем новый критерий сортировки по ID\n    PRICE = \"price\"\n    VOLUME = \"volume\"\n    PLUS_DEPTH = \"plus_depth\"\n    MINUS_DEPTH = \"minus_depth\"\n    EXCHANGE = \"exchange\"\n    VOLUME_PERCENTAGE = \"volume_percentage\"  # Добавляем сортировку по проценту объема",
+        "detail": "main",
+        "documentation": {}
+    }
+]
