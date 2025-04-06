@@ -27,7 +27,7 @@ app.add_middleware(
 )
 
 # Инициализация подключения к Redis
-redis_client = redis.Redis(host='redis', port=6379, db=0, decode_responses=True)
+redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
 CACHE_TTL = 180  # время жизни кэша - 3 минуты
 
 # Обновляем класс перечисления для поддержки возможных критериев сортировки
@@ -38,6 +38,7 @@ class SortCriterion(str, Enum):
     PLUS_DEPTH = "plus_depth"
     MINUS_DEPTH = "minus_depth"
     EXCHANGE = "exchange"
+    VOLUME_PERCENTAGE = "volume_percentage"  # Добавляем сортировку по проценту объема
 
 # Модели данных для типизации и документации
 class ExchangeData(BaseModel):
@@ -217,7 +218,7 @@ async def get_ltc_exchanges(
     """
     Получает список бирж, торгующих парой LTC/USDT с возможностью сортировки по различным параметрам.
     
-    - **sort_by**: Критерий сортировки (id, price, volume, plus_depth, minus_depth, exchange)
+    - **sort_by**: Критерий сортировки (id, price, volume, plus_depth, minus_depth, exchange, volume_percentage)
     - **descending**: Порядок сортировки (по умолчанию - по убыванию)
     """
     try:
@@ -290,6 +291,9 @@ async def get_ltc_exchanges(
             elif sort_by == SortCriterion.EXCHANGE:
                 exchanges.sort(key=lambda x: x.exchange.lower(), reverse=descending)
                 print(f"DEBUG: Выполнена сортировка по названию биржи")
+            elif sort_by == SortCriterion.VOLUME_PERCENTAGE:
+                exchanges.sort(key=lambda x: float(x.volumePercentage.replace('%', '')), reverse=descending)
+                print(f"DEBUG: Выполнена сортировка по проценту объема")
         else:
             # По умолчанию сортируем по объему торгов
             exchanges.sort(key=lambda x: float(x.volume24h.replace('$', '').replace(',', '')), reverse=True)
