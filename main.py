@@ -341,6 +341,24 @@ async def fetch_exchange_data_from_api():
     else:
         print(f"DEBUG: Ошибка API exchanges: {exchanges_response.status_code}, {exchanges_response.text[:200]}")
     
+    # Хардкод иконок для бирж, которые отсутствуют в API или имеют проблемы с сопоставлением
+    hardcoded_icons = {
+        "bitstorage": "https://coin-images.coingecko.com/markets/images/394/small/Group_3575807.png?1706864409",
+        "bcex": "https://coin-images.coingecko.com/markets/images/190/small/bcex.jpg?1706864323",
+        "trade_ogre": "https://coin-images.coingecko.com/markets/images/101/small/tradeogre.jpeg?1706864289",
+        "oceanex": "https://coin-images.coingecko.com/markets/images/341/small/Oceanex.png?1706864383",
+        "probit": "https://coin-images.coingecko.com/markets/images/370/small/probit.png?1706864390",
+        "grovex": "https://coin-images.coingecko.com/markets/images/11852/small/GroveX_200px.png?1738737388",
+        "poloniex": "https://coin-images.coingecko.com/markets/images/37/small/poloniex.png?1706864269",
+        "toko_crypto": "https://coin-images.coingecko.com/markets/images/501/small/toko.png?1706864476",
+        "cex": "https://coin-images.coingecko.com/markets/images/56/small/main-icon.png?1706864277",
+        "hitbtc": "https://coin-images.coingecko.com/markets/images/25/small/hitbtc.png",
+        "coincatch": "https://coin-images.coingecko.com/markets/images/1214/small/CoinCatch_New_Logo.jpeg?1729059088"
+    }
+    
+    # Добавляем хардкод иконок в общий маппинг
+    exchange_icon_mapping.update(hardcoded_icons)
+    
     # Получаем данные о Litecoin с CoinGecko
     response = requests.get('https://api.coingecko.com/api/v3/coins/litecoin/tickers')
     if response.status_code != 200:
@@ -369,37 +387,14 @@ async def fetch_exchange_data_from_api():
             exchange_identifier = market_info.get('identifier')
             exchange_name = market_info.get('name', 'Unknown')
             
-            # Пытаемся найти иконку сначала по идентификатору
+            # Пытаемся найти иконку по идентификатору (включая хардкод)
             icon_url = exchange_icon_mapping.get(exchange_identifier)
             
-            # Отладочная информация о попытке сопоставления
-            icon_found_method = "identifier"
-            
-            # Если иконка не найдена по идентификатору, пробуем поискать по имени или с преобразованием регистра
-            if not icon_url:
-                # Ищем биржу в маппинге по имени или с преобразованием регистра
-                for exchange_id, icon in exchange_icon_mapping.items():
-                    if exchange_id.lower() == exchange_identifier.lower():
-                        icon_url = icon
-                        icon_found_method = "identifier_lowercase"
-                        break
-                    elif exchange_id.lower() == exchange_name.lower():
-                        icon_url = icon
-                        icon_found_method = "name_lowercase"
-                        break
-            
-            # Вывод отладочной информации для всех бирж
+            # Простая отладочная информация
             if icon_url:
-                print(f"DEBUG: Биржа '{exchange_name}' (id: {exchange_identifier}): иконка найдена через {icon_found_method}")
+                print(f"DEBUG: Биржа '{exchange_name}' (id: {exchange_identifier}): иконка найдена")
             else:
                 print(f"DEBUG: ⚠️ Биржа '{exchange_name}' (id: {exchange_identifier}): иконка НЕ найдена!")
-                # Выводим список возможных совпадений для облегчения диагностики
-                possible_matches = []
-                for exchange_id in exchange_icon_mapping.keys():
-                    if exchange_identifier.lower() in exchange_id.lower() or exchange_name.lower() in exchange_id.lower():
-                        possible_matches.append(exchange_id)
-                if possible_matches:
-                    print(f"DEBUG: Возможные совпадения для '{exchange_name}': {possible_matches}")
             
             exchange_data = ExchangeData(
                 id=0,  # Временный ID, переназначим позже
