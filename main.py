@@ -45,6 +45,7 @@ class ExchangeData(BaseModel):
     exchange: str
     pair: str
     price: str
+    price_percent: Optional[float] = None  # Добавляем поле для процентной корректировки
     plusTwoPercentDepth: str
     minusTwoPercentDepth: str
     volume24h: str
@@ -72,7 +73,7 @@ custom_exchanges: Dict[str, ExchangeData] = {}
 class CustomExchangeInput(BaseModel):
     exchange: str
     pair: str = "LTC/USDT"
-    price: float
+    price_percent: Optional[float] = None  # Добавляем поле для процентной корректировки
     plusTwoPercentDepth: float
     minusTwoPercentDepth: float
     volume24h: float
@@ -82,6 +83,7 @@ class CustomExchangeInput(BaseModel):
 class CustomExchangeUpdateInput(BaseModel):
     pair: Optional[str] = None
     price: Optional[float] = None
+    price_percent: Optional[float] = None  # Добавляем поле для процентной корректировки
     plusTwoPercentDepth: Optional[float] = None
     minusTwoPercentDepth: Optional[float] = None
     volume24h: Optional[float] = None
@@ -98,11 +100,19 @@ async def add_custom_exchange(exchange_data: CustomExchangeInput):
     
     exchange_id = exchange_data.exchange.lower()
     
+    # Если указан процент, рассчитываем цену автоматически
+    price = None
+    if exchange_data.price_percent is not None:
+        binance_price = await get_binance_ltc_price()
+        if binance_price > 0:
+            price = binance_price * (1 + exchange_data.price_percent / 100)
+    
     custom_exchanges[exchange_id] = ExchangeData(
         id=0,  # ID будет присвоен позже при объединении списков
         exchange=exchange_data.exchange,
         pair=exchange_data.pair,
-        price=f"{exchange_data.price:.4f}",
+        price=f"{price:.4f}" if price else "0.0000",
+        price_percent=exchange_data.price_percent,  # Сохраняем процентную корректировку
         plusTwoPercentDepth=f"${math.floor(exchange_data.plusTwoPercentDepth):,}",
         minusTwoPercentDepth=f"${math.floor(exchange_data.minusTwoPercentDepth):,}",
         volume24h=f"${math.floor(exchange_data.volume24h):,}",
@@ -162,8 +172,18 @@ async def update_custom_exchange(exchange_name: str, exchange_data: CustomExchan
     if exchange_data.pair is not None:
         exchange.pair = exchange_data.pair
         
-    if exchange_data.price is not None:
+    # Особая обработка для процентной корректировки
+    if exchange_data.price_percent is not None:
+        exchange.price_percent = exchange_data.price_percent
+        # Обновляем цену на основе новой процентной корректировки
+        binance_price = await get_binance_ltc_price()
+        if binance_price > 0:
+            calculated_price = binance_price * (1 + exchange_data.price_percent / 100)
+            exchange.price = f"{calculated_price:.4f}"
+    elif exchange_data.price is not None:
+        # Если указана конкретная цена, обнуляем процентную корректировку
         exchange.price = f"{exchange_data.price:.4f}"
+        exchange.price_percent = None
         
     if exchange_data.plusTwoPercentDepth is not None:
         exchange.plusTwoPercentDepth = f"${math.floor(exchange_data.plusTwoPercentDepth):,}"
@@ -262,12 +282,24 @@ async def get_ltc_exchanges(
         
         # Добавляем пользовательские биржи к основному списку
         for custom_exchange in custom_exchanges.values():
+            # Обновляем цену для бирж с процентной корректировкой
+            if custom_exchange.price_percent is not None:
+                binance_price = await get_binance_ltc_price()
+                if binance_price > 0:
+                    calculated_price = binance_price * (1 + custom_exchange.price_percent / 100)
+                    price_str = f"{calculated_price:.4f}"
+                else:
+                    price_str = custom_exchange.price
+            else:
+                price_str = custom_exchange.price
+            
             # Копируем данные, чтобы избежать изменения оригинального объекта
             exchange_copy = ExchangeData(
                 id=0,  # Временный ID, переназначим позже
                 exchange=custom_exchange.exchange,
                 pair=custom_exchange.pair,
-                price=custom_exchange.price,
+                price=price_str,  # Используем обновленную цену
+                price_percent=custom_exchange.price_percent,
                 plusTwoPercentDepth=custom_exchange.plusTwoPercentDepth,
                 minusTwoPercentDepth=custom_exchange.minusTwoPercentDepth,
                 volume24h=custom_exchange.volume24h,
@@ -277,6 +309,11 @@ async def get_ltc_exchanges(
             )
             exchanges.append(exchange_copy)
         
+        # Сначала присваиваем ID всем биржам перед сортировкой
+        # Это позволит сохранить ID при любых сортировках
+        for i, exchange in enumerate(exchanges, start=1):
+            exchange.id = i
+            
         # Выполняем сортировку в зависимости от параметров
         if sort_by:
             if sort_by == SortCriterion.ID:
@@ -296,8 +333,8 @@ async def get_ltc_exchanges(
             # По умолчанию сортируем по объему торгов
             exchanges.sort(key=lambda x: float(x.volume24h.replace('$', '').replace(',', '')), reverse=True)
         
-        # Присваиваем ID в зависимости от сортировки только если НЕ сортируем по ID
-        # Если сортируем по ID, то ID уже должны быть установлены
+        # После сортировки, если не сортируем по ID, переназначаем ID
+        # чтобы они соответствовали новому порядку
         if sort_by != SortCriterion.ID:
             for i, exchange in enumerate(exchanges, start=1):
                 exchange.id = i
@@ -582,6 +619,20 @@ async def get_ltc_price_history(days: int = 30, daily_close: bool = True):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при получении истории цен LTC: {str(e)}")
 
+# Функция для получения текущей цены LTC с Binance
+async def get_binance_ltc_price() -> float:
+    """Получение текущей цены LTC с Binance"""
+    try:
+        response = requests.get('https://api.binance.com/api/v3/ticker/price', params={'symbol': 'LTCUSDT'})
+        if response.status_code == 200:
+            data = response.json()
+            return float(data['price'])
+        else:
+            return 0
+    except Exception as e:
+        print(f"Ошибка при получении цены LTC с Binance: {str(e)}")
+        return 0
+
 # Корневой маршрут с информацией об API
 @app.get("/", tags=["info"])
 async def root():
@@ -615,3 +666,4 @@ async def root():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
